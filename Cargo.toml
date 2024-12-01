@@ -1,0 +1,20 @@
+[package]
+name = "player-rs"
+edition = "2021"
+
+[dependencies]
+ffmpeg-next = { version = "7.1", features = [
+    "format",
+    "codec",
+    "software-resampling",
+    "software-scaling",
+] }
+ndarray = "0.16"
+tracing = "0.1"
+url = "2"
+
+[features]
+# 声明项目的默认特性，包含 ndarray 特性
+default = ["ndarray"]  
+# 声明 ndarray 特性所包含的内容
+ndarray = []
