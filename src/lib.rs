@@ -1,4 +1,5 @@
 pub mod core;
+pub mod control;
 
 /// Re-export backend `ffmpeg` library.
 pub use ffmpeg_next as ffmpeg;
