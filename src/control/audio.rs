@@ -1,5 +1,4 @@
-// Copyright  SixtyFPS GmbH
-// SPDX-License-Identifier: MIT
+extern crate ffmpeg_next as ffmpeg;
 
 use std::pin::Pin;
 
@@ -17,19 +16,19 @@ use crate::control::player::ControlCommand;
 
 pub struct AudioPlaybackThread {
     control_sender: smol::channel::Sender<ControlCommand>,
-    packet_sender: smol::channel::Sender<ffmpeg_next::codec::packet::packet::Packet>,
+    packet_sender: smol::channel::Sender<ffmpeg::codec::packet::packet::Packet>,
     receiver_thread: Option<std::thread::JoinHandle<()>>,
 }
 
 impl AudioPlaybackThread {
-    pub fn start(stream: &ffmpeg_next::format::stream::Stream) -> Result<Self, anyhow::Error> {
+    pub fn start(stream: &ffmpeg::format::stream::Stream) -> Result<Self, anyhow::Error> {
         println!("音频线程启动 - 流信息: {}", stream.duration());
 
         let (control_sender, control_receiver) = smol::channel::unbounded();
 
         let (packet_sender, packet_receiver) = smol::channel::bounded(128);
 
-        let decoder_context = ffmpeg_next::codec::Context::from_parameters(stream.parameters())?;
+        let decoder_context = ffmpeg::codec::Context::from_parameters(stream.parameters())?;
         let packet_decoder = decoder_context.decoder().audio()?;
 
         println!("音频解码器初始化完成 - 格式: {:?}", packet_decoder.format());
@@ -53,8 +52,8 @@ impl AudioPlaybackThread {
             .spawn(move || {
                 smol::block_on(async move {
                     let output_channel_layout = match config.channels() {
-                        1 => ffmpeg_next::util::channel_layout::ChannelLayout::MONO,
-                        2 => ffmpeg_next::util::channel_layout::ChannelLayout::STEREO,
+                        1 => ffmpeg::util::channel_layout::ChannelLayout::MONO,
+                        2 => ffmpeg::util::channel_layout::ChannelLayout::STEREO,
                         _ => todo!(),
                     };
                     println!("音频输出通道布局: {:?}", output_channel_layout);
@@ -67,8 +66,8 @@ impl AudioPlaybackThread {
                                 &device,
                                 packet_receiver,
                                 packet_decoder,
-                                ffmpeg_next::util::format::sample::Sample::U8(
-                                    ffmpeg_next::util::format::sample::Type::Packed,
+                                ffmpeg::util::format::sample::Sample::U8(
+                                    ffmpeg::util::format::sample::Type::Packed,
                                 ),
                                 output_channel_layout,
                             )
@@ -80,8 +79,8 @@ impl AudioPlaybackThread {
                                 &device,
                                 packet_receiver,
                                 packet_decoder,
-                                ffmpeg_next::util::format::sample::Sample::F32(
-                                    ffmpeg_next::util::format::sample::Type::Packed,
+                                ffmpeg::util::format::sample::Sample::F32(
+                                    ffmpeg::util::format::sample::Type::Packed,
                                 ),
                                 output_channel_layout,
                             )
@@ -137,7 +136,7 @@ impl AudioPlaybackThread {
         })
     }
 
-    pub async fn receive_packet(&self, packet: ffmpeg_next::codec::packet::packet::Packet) -> bool {
+    pub async fn receive_packet(&self, packet: ffmpeg::codec::packet::packet::Packet) -> bool {
         match self.packet_sender.send(packet).await {
             Ok(_) => {
                 println!("音频包发送成功");
@@ -171,7 +170,7 @@ impl Drop for AudioPlaybackThread {
 trait FFMpegToCPalSampleForwarder {
     fn forward(
         &mut self,
-        audio_frame: ffmpeg_next::frame::Audio,
+        audio_frame: ffmpeg::frame::Audio,
     ) -> Pin<Box<dyn Future<Output = ()> + '_>>;
 }
 
@@ -181,7 +180,7 @@ where
 {
     fn forward(
         &mut self,
-        audio_frame: ffmpeg_next::frame::Audio,
+        audio_frame: ffmpeg::frame::Audio,
     ) -> Pin<Box<dyn Future<Output = ()> + '_>> {
         println!(
             "转发音频帧 - 采样数: {}, 通道数: {}, 格式: {:?}",
@@ -210,19 +209,19 @@ where
 struct FFmpegToCPalForwarder {
     _cpal_stream: cpal::Stream,
     ffmpeg_to_cpal_pipe: Box<dyn FFMpegToCPalSampleForwarder>,
-    packet_receiver: smol::channel::Receiver<ffmpeg_next::codec::packet::packet::Packet>,
-    packet_decoder: ffmpeg_next::decoder::Audio,
-    resampler: ffmpeg_next::software::resampling::Context,
+    packet_receiver: smol::channel::Receiver<ffmpeg::codec::packet::packet::Packet>,
+    packet_decoder: ffmpeg::decoder::Audio,
+    resampler: ffmpeg::software::resampling::Context,
 }
 
 impl FFmpegToCPalForwarder {
     fn new<T: Send + Pod + SizedSample + 'static>(
         config: cpal::SupportedStreamConfig,
         device: &cpal::Device,
-        packet_receiver: smol::channel::Receiver<ffmpeg_next::codec::packet::packet::Packet>,
-        packet_decoder: ffmpeg_next::decoder::Audio,
-        output_format: ffmpeg_next::util::format::sample::Sample,
-        output_channel_layout: ffmpeg_next::util::channel_layout::ChannelLayout,
+        packet_receiver: smol::channel::Receiver<ffmpeg::codec::packet::packet::Packet>,
+        packet_decoder: ffmpeg::decoder::Audio,
+        output_format: ffmpeg::util::format::sample::Sample,
+        output_channel_layout: ffmpeg::util::channel_layout::ChannelLayout,
     ) -> Self {
         let buffer = HeapRb::new(4096);
         let (sample_producer, mut sample_consumer) = buffer.split();
@@ -243,7 +242,7 @@ impl FFmpegToCPalForwarder {
 
         cpal_stream.play().unwrap();
 
-        let resampler = ffmpeg_next::software::resampling::Context::get(
+        let resampler = ffmpeg::software::resampling::Context::get(
             packet_decoder.format(),
             packet_decoder.channel_layout(),
             packet_decoder.rate(),
@@ -272,14 +271,14 @@ impl FFmpegToCPalForwarder {
             println!("音频包接收到");
             self.packet_decoder.send_packet(&packet).unwrap();
 
-            let mut decoded_frame = ffmpeg_next::util::frame::Audio::empty();
+            let mut decoded_frame = ffmpeg::util::frame::Audio::empty();
             while self
                 .packet_decoder
                 .receive_frame(&mut decoded_frame)
                 .is_ok()
             {
                 println!("音频解码完成");
-                let mut resampled_frame = ffmpeg_next::util::frame::Audio::empty();
+                let mut resampled_frame = ffmpeg::util::frame::Audio::empty();
                 println!("音频重采样");
                 self.resampler
                     .run(&decoded_frame, &mut resampled_frame)

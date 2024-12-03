@@ -1,5 +1,4 @@
-// Copyright  SixtyFPS GmbH 
-// SPDX-License-Identifier: MIT
+extern crate ffmpeg_next as ffmpeg;
 
 use futures::{future::OptionFuture, FutureExt};
 
@@ -7,14 +6,14 @@ use super::player::ControlCommand;
 
 pub struct VideoPlaybackThread {
     control_sender: smol::channel::Sender<ControlCommand>,
-    packet_sender: smol::channel::Sender<ffmpeg_next::codec::packet::packet::Packet>,
+    packet_sender: smol::channel::Sender<ffmpeg::codec::packet::packet::Packet>,
     receiver_thread: Option<std::thread::JoinHandle<()>>,
 }
 
 impl VideoPlaybackThread {
     pub fn start(
-        stream: &ffmpeg_next::format::stream::Stream,
-        mut video_frame_callback: Box<dyn FnMut(&ffmpeg_next::util::frame::Video) + Send>,
+        stream: &ffmpeg::format::stream::Stream,
+        mut video_frame_callback: Box<dyn FnMut(&ffmpeg::util::frame::Video) + Send>,
     ) -> Result<Self, anyhow::Error> {
         println!("视频线程启动 - 流信息: {}", stream.duration());
 
@@ -22,7 +21,7 @@ impl VideoPlaybackThread {
 
         let (packet_sender, packet_receiver) = smol::channel::bounded(128);
 
-        let decoder_context = ffmpeg_next::codec::Context::from_parameters(stream.parameters())?;
+        let decoder_context = ffmpeg::codec::Context::from_parameters(stream.parameters())?;
         let mut packet_decoder = decoder_context.decoder().video()?;
 
         println!("视频解码器初始化完成 - {:?}", packet_decoder.format());
@@ -46,7 +45,7 @@ impl VideoPlaybackThread {
                                 continue;
                             }
 
-                            let mut decoded_frame = ffmpeg_next::util::frame::Video::empty();
+                            let mut decoded_frame = ffmpeg::util::frame::Video::empty();
 
                             while packet_decoder.receive_frame(&mut decoded_frame).is_ok() {
                                 if let Some(delay) = clock.convert_pts_to_instant(decoded_frame.pts()) {
@@ -98,7 +97,7 @@ impl VideoPlaybackThread {
         Ok(Self { control_sender, packet_sender, receiver_thread: Some(receiver_thread) })
     }
 
-    pub async fn receive_packet(&self, packet: ffmpeg_next::codec::packet::packet::Packet) -> bool {
+    pub async fn receive_packet(&self, packet: ffmpeg::codec::packet::packet::Packet) -> bool {
         match self.packet_sender.send(packet).await {
             Ok(_) => {
                 println!("视频包发送成功");
@@ -135,7 +134,7 @@ struct StreamClock {
 }
 
 impl StreamClock {
-    fn new(stream: &ffmpeg_next::format::stream::Stream) -> Self {
+    fn new(stream: &ffmpeg::format::stream::Stream) -> Self {
         let time_base_seconds = stream.time_base();
         let time_base_seconds =
             time_base_seconds.numerator() as f64 / time_base_seconds.denominator() as f64;

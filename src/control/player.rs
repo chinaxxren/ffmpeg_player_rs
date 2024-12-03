@@ -1,5 +1,4 @@
-// Copyright  SixtyFPS GmbH 
-// SPDX-License-Identifier: MIT
+extern crate ffmpeg_next as ffmpeg;
 
 use std::path::PathBuf;
 
@@ -24,7 +23,7 @@ pub struct Player {
 impl Player {
     pub fn start(
         path: PathBuf,
-        video_frame_callback: impl FnMut(&ffmpeg_next::util::frame::Video) + Send + 'static,
+        video_frame_callback: impl FnMut(&ffmpeg::util::frame::Video) + Send + 'static,
         playing_changed_callback: impl Fn(bool) + 'static,
     ) -> Result<Self, anyhow::Error> {
         println!("开始播放视频文件: {:?}", path);
@@ -34,11 +33,11 @@ impl Player {
             std::thread::Builder::new().name("demuxer thread".into()).spawn(move || {
                 smol::block_on(async move {
                     println!("初始化输入上下文");
-                    let mut input_context = ffmpeg_next::format::input(&path).unwrap();
+                    let mut input_context = ffmpeg::format::input(&path).unwrap();
 
                     println!("查找最佳视频流");
                     let video_stream =
-                        input_context.streams().best(ffmpeg_next::media::Type::Video).unwrap();
+                        input_context.streams().best(ffmpeg::media::Type::Video).unwrap();
                     let video_stream_index = video_stream.index();
                     println!("视频流索引: {}", video_stream_index);
                     let video_playback_thread = video::VideoPlaybackThread::start(
@@ -49,7 +48,7 @@ impl Player {
 
                     println!("查找最佳音频流");
                     let audio_stream =
-                        input_context.streams().best(ffmpeg_next::media::Type::Audio).unwrap();
+                        input_context.streams().best(ffmpeg::media::Type::Audio).unwrap();
                     let audio_stream_index = audio_stream.index();
                     println!("音频流索引: {}", audio_stream_index);
                     let audio_playback_thread =

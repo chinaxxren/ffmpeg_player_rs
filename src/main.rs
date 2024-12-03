@@ -1,8 +1,10 @@
+extern crate ffmpeg_next as ffmpeg;
+
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::error::Error;
 use sdl2::pixels::PixelFormatEnum;
-use ffmpeg_next::frame::Video as AVFrame;
+use ffmpeg::frame::Video as AVFrame;
 
 mod control;
 use crate::control::player::Player;
