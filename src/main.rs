@@ -105,7 +105,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 if last_frame_time.elapsed() > Duration::from_secs(5) {
                     println!("警告: 5秒未收到新帧");
                     // 检查 player 状态
-                    if let Ok(player) = player.lock() {
+                    if let Ok(_) = player.lock() {
                         println!("Player 仍然存在且可访问");
                     }
                     last_frame_time = Instant::now();
