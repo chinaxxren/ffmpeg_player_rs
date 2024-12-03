@@ -30,7 +30,6 @@ futures = { version = "0.3.28" }
 # clap用于解析命令行参数，简化命令行工具的开发
 clap = { version = "4.5.11", features = ["derive"] }
 
-
 # cpal是一个跨平台的音频播放库
 cpal = "0.15.2"
 
@@ -40,8 +39,33 @@ ringbuf = "0.3.3"
 # bytemuck用于处理字节和Rust类型之间的转换
 bytemuck = "1.13.1"
 
+# [dependencies.sdl2]
+# git = "https://github.com/rust-sdl2/rust-sdl2"
+
+[dependencies.sdl2]
+version = "0.37"
+default-features = false
+features = ["ttf", "image", "gfx", "mixer", "static-link", "use-vcpkg"]
+
+[package.metadata.vcpkg]
+dependencies = [
+    "sdl2",
+    "sdl2-image[libjpeg-turbo,tiff,libwebp]",
+    "sdl2-ttf",
+    "sdl2-gfx",
+    "sdl2-mixer",
+]
+git = "https://github.com/microsoft/vcpkg"
+rev = "2024.05.24" # release 2024.05.24 # to check for a new one, check https://github.com/microsoft/vcpkg/releases
+
+[package.metadata.vcpkg.target]
+x86_64-pc-windows-msvc = { triplet = "x64-windows-static-md" }
+
 [features]
 # 声明项目的默认特性，包含 ndarray 特性
-default = ["ndarray"]  
+default = ["ndarray"]
 # 声明 ndarray 特性所包含的内容
 ndarray = []
+
+[build-dependencies]
+pkg-config = "0.3"

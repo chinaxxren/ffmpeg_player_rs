@@ -1,73 +1,92 @@
-
 extern crate ffmpeg_next as ffmpeg;
 
-use ffmpeg::format::Pixel;
+use std::sync::mpsc;
+use sdl2::{pixels::Color, render::Canvas, video::Window, VideoSubsystem};
+use ffmpeg_next::frame::Video as AVFrame;
 
 mod control;
-
 use crate::control::player::PlayerControl;
 
-fn main() {
+// 定义固定窗口大小
+const WINDOW_WIDTH: u32 = 800;
+const WINDOW_HEIGHT: u32 = 600;
 
-    let mut player = PlayerControl::start(
-        "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4".into(),
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize SDL things
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+
+    let window = create_window(&video_subsystem, WINDOW_WIDTH, WINDOW_HEIGHT);
+    let mut canvas = create_canvas(window);
+
+    let texture_creator = canvas.texture_creator();
+  
+
+    // 创建通道用于传输视频帧数据
+    let (tx, rx) = mpsc::channel::<AVFrame>();
+
+    PlayerControl::start(
+        "/Users/chinaxxren/Desktop/a.mp4".into(),
         {
-
-            move |new_frame| {
-
-                // let rebuild_rescaler =
-                //     to_rgba_rescaler.as_ref().map_or(true, |existing_rescaler| {
-                //         existing_rescaler.input().format != new_frame.format()
-                //     });
-
-                // if rebuild_rescaler {
-                //     to_rgba_rescaler = Some(rgba_rescaler_for_frame(new_frame));
-                // }
-
-                // let rescaler = to_rgba_rescaler.as_mut().unwrap();
-
-                // let mut rgb_frame = ffmpeg::util::frame::Video::empty();
-                // rescaler.run(&new_frame, &mut rgb_frame).unwrap();
-
-                // let pixel_buffer = video_frame_to_pixel_buffer(&rgb_frame);
-                // app_weak.upgrade_in_event_loop(|app| {
-                        //app.set_video_frame(slint::Image::from_rgb8(pixel_buffer))
-                    // })
-                    // .unwrap();
+            move |video| {
+                let width = video.width();
+                let height = video.height();
+                
+                if width == 0 || height == 0 {
+                    println!("Error: Invalid frame dimensions: {}x{}", width, height);
+                    return;
+                }
+                
+                println!("Frame received: {}x{}, format: {:?}", width, height, video.format());
+                
+                // 确保宽度和高度是2的倍数
+                if width % 2 != 0 || height % 2 != 0 {
+                    println!("Error: Frame dimensions not multiple of 2: {}x{}", width, height);
+                    return;
+                }
+                
+                // 检查帧格式
+                if frame.format() != ffmpeg::format::Pixel::YUV420P {
+                    println!("Error: Unexpected frame format: {:?}", video.format());
+                    return;
+                }
+                
+               
             }
         },
         {
-            // let app_weak = app.as_weak();
-
             move |playing| {
-                // app_weak.upgrade_in_event_loop(move |app| app.set_playing(playing)).unwrap();
+                println!("Playing state changed: {}", playing);
             }
         },
     )
     .unwrap();
 
-    // app.on_toggle_pause_play(move || {
-    //     player.toggle_pause_playing();
-    // });
 
-    // app.run().unwrap();
+    println!("############################=>Exiting...");
+    Ok(())
 }
 
-// Work around https://github.com/zmwangx/rust-ffmpeg/issues/102
-struct Rescaler(ffmpeg::software::scaling::Context);
-unsafe impl std::marker::Send for Rescaler {}
+fn create_window(video_subsystem: &VideoSubsystem, width: u32, height: u32) -> Window { 
+    video_subsystem
+        .window("Video Player", width, height)
+        .position_centered()
+        .resizable() // 允许调整窗口大小
+        .opengl()
+        .build()
+        .unwrap()
+}
 
-fn rgba_rescaler_for_frame(frame: &ffmpeg_next::util::frame::Video) -> Rescaler {
-    Rescaler(
-        ffmpeg_next::software::scaling::Context::get(
-            frame.format(),
-            frame.width(),
-            frame.height(),
-            Pixel::RGB24,
-            frame.width(),
-            frame.height(),
-            ffmpeg_next::software::scaling::Flags::BILINEAR,
-        )
-        .unwrap(),
-    )
+fn create_canvas(window: Window) -> Canvas<Window> {
+    let mut canvas = window
+        .into_canvas()
+        .present_vsync() // 启用垂直同步
+        .build()
+        .unwrap();
+
+    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.clear();
+    canvas.present();
+
+    canvas
 }

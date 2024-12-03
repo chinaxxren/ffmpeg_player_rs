@@ -71,6 +71,10 @@ impl VideoPlaybackThread {
 
                                 // 调用视频帧回调函数
                                 video_frame_callback(&decoded_frame);
+
+                                // 在处理视频帧的地方
+                                println!("视频帧格式: {:?}", decoded_frame.format());
+                                println!("视频帧大小: {}x{}", decoded_frame.width(), decoded_frame.height());
                             }
                         }
                     }
@@ -142,7 +146,7 @@ impl VideoPlaybackThread {
     ///
     /// # 返回值
     ///
-    /// * `true` - 数据包成功发送到解码器
+    /// * `true` - 数据功发送到解码器
     /// * `false` - 数据包发送失败，这通常意味着解码器已经关闭或者发生了其他类型的错误
     pub async fn receive_packet(&self, packet: ffmpeg::codec::packet::packet::Packet) -> bool {
         // 尝试通过异步通道发送数据包到解码器

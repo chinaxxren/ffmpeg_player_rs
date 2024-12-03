@@ -2,6 +2,7 @@ extern crate ffmpeg_next as ffmpeg;
 
 use std::path::PathBuf;
 
+use ffmpeg_next::ffi::AVFrame;
 use futures::{future::OptionFuture, FutureExt};
 
 use crate::control::audio;
@@ -35,7 +36,7 @@ impl PlayerControl {
         video_frame_callback: impl FnMut(&ffmpeg::util::frame::Video) + Send + 'static,
         playing_changed_callback: impl Fn(bool) + 'static,
     ) -> Result<Self, anyhow::Error> {
-        // 创建控制命令发送端和接收端
+        // 创建控制命令发送和接收端
         let (control_sender, control_receiver) = smol::channel::unbounded();
 
         // 启动解码器线程
@@ -75,6 +76,7 @@ impl PlayerControl {
                     let audio_playback_thread =
                         audio::AudioPlaybackThread::start(&audio_stream).unwrap();
 
+                
                     // 初始化播放状态为 true
                     let mut playing = true;
 
@@ -174,6 +176,17 @@ impl PlayerControl {
         }
         // 调用播放状态改变的回调函数，通知状态已更改
         (self.playing_changed_callback)(self.playing);
+    }
+
+    pub fn process_audio_frame(&mut self, frame: &AVFrame) {
+        println!("处理音频帧: 采样数={}, 声道数={}, 格式={:?}", 
+            frame.nb_samples,
+            frame.ch_layout.nb_channels,
+            frame.format
+        );
+        
+        // 处理音频数据时添加日志
+        // ... 音频处理代码 ...
     }
 }
 
