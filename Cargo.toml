@@ -18,49 +18,6 @@ tracing = "0.1"
 # url用于处理和解析URL
 url = "2"
 
-# smol是一个异步运行时库，用于处理异步任务
-smol = { version = "2.0.0" }
-
-# anyhow用于错误处理，简化错误传播和转换
-anyhow = { version = "1.0" }
-
-# futures用于异步编程，提供异步任务的创建和管理
-futures = { version = "0.3.28" }
-
-# clap用于解析命令行参数，简化命令行工具的开发
-clap = { version = "4.5.11", features = ["derive"] }
-
-# cpal是一个跨平台的音频播放库
-cpal = "0.15.2"
-
-# ringbuf是环形缓冲区的实现，常用于音频处理
-ringbuf = "0.3.3"
-
-# bytemuck用于处理字节和Rust类型之间的转换
-bytemuck = "1.13.1"
-
-# [dependencies.sdl2]
-# git = "https://github.com/rust-sdl2/rust-sdl2"
-
-[dependencies.sdl2]
-version = "0.37"
-default-features = false
-features = ["ttf", "image", "gfx", "mixer", "static-link", "use-vcpkg"]
-
-[package.metadata.vcpkg]
-dependencies = [
-    "sdl2",
-    "sdl2-image[libjpeg-turbo,tiff,libwebp]",
-    "sdl2-ttf",
-    "sdl2-gfx",
-    "sdl2-mixer",
-]
-git = "https://github.com/microsoft/vcpkg"
-rev = "2024.05.24" # release 2024.05.24 # to check for a new one, check https://github.com/microsoft/vcpkg/releases
-
-[package.metadata.vcpkg.target]
-x86_64-pc-windows-msvc = { triplet = "x64-windows-static-md" }
-
 [features]
 # 声明项目的默认特性，包含 ndarray 特性
 default = ["ndarray"]
